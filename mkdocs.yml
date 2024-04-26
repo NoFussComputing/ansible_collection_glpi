@@ -29,6 +29,10 @@ nav:
 
         - projects/ansible/collection/glpi/index.md
 
+        - Role nfc_glpi:
+
+          - projects/ansible/collection/glpi/roles/nfc_glpi/index.md
+
 - Operations: 
 
   - operations/index.md
