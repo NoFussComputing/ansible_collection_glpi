@@ -1,0 +1,6 @@
+[submodule "gitlab-ci"]
+	path = gitlab-ci
+	url = https://gitlab.com/nofusscomputing/projects/gitlab-ci.git
+[submodule "website-template"]
+	path = website-template
+	url = https://gitlab.com/nofusscomputing/infrastructure/website-template.git

@@ -1,0 +1,295 @@
+---
+
+- name: GLPI
+  hosts: localhost
+  become: false
+  gather_facts: false
+
+
+  tasks:
+
+
+    - name: "[Plugin] FormCreator to JSON"
+      ansible.builtin.include_role:
+        name: nofusscomputing.nfc_glpi
+        tasks_from: plugin-formcreator-to-json.yaml
+        apply:
+          tags:
+            - always
+      tags:
+        - plugin_form_fetch_json
+
+
+    - name: Fetch Ticket Template From ITIL Category
+      ansible.builtin.include_role:
+        name: nofusscomputing.nfc_glpi
+        tasks_from: tickets/template-from-itil-category.yaml
+        apply:
+          tags:
+            - always
+      tags:
+        - ticket_template_from_itil_category
+
+
+    - name: Create GLPI Ticket
+      ansible.builtin.include_role:
+        name: nofusscomputing.nfc_glpi
+        tasks_from: tickets/create.yaml
+        apply:
+          tags:
+            - always
+      tags:
+        - ticket_create
+
+
+    - name: Create GLPI Ticket Task
+      ansible.builtin.include_role:
+        name: nofusscomputing.nfc_glpi
+        tasks_from: tickets/task_create.yaml
+        apply:
+          tags:
+            - always
+      tags:
+        - ticket_task_create
+
+
+    - name: "[Plugin] FormCreator Delete Answers"
+      ansible.builtin.include_role:
+        name: nofusscomputing.nfc_glpi
+        tasks_from: plugin-formcreator-delete-form.yaml
+        apply:
+          tags:
+            - always
+      tags:
+        - plugin_form_delete_answer
+
+
+    - name: Close GLPI Ticket Task
+      ansible.builtin.include_role:
+        name: nofusscomputing.nfc_glpi
+        tasks_from: tickets/close.yaml
+        apply:
+          tags:
+            - always
+      tags:
+        - ticket_close
+
+
+  vars:
+
+
+    nfc_pb_awx_tower_template:
+      - name: "ITIL/GLPI/Plugin/FormCreator/Delete/Form_Answer"
+        ask_credential_on_launch: true
+        ask_inventory_on_launch: true
+        ask_tags_on_launch: false
+        ask_variables_on_launch: true
+        concurrent_jobs_enabled: true
+        description: |
+          Delete A Form Creator Form Answer.
+        execution_environment: "No Fuss Computing EE"
+        extra_vars:
+          nfc_pb_glpi_plugin_formcreator_delete_id: 0
+        job_tags: plugin_form_delete_answer
+        job_type: "run"
+        labels:
+          - delete
+          - forms
+          - glpi
+          - itsm
+          - plugin
+          - service_catalog
+          - ticket
+        survey_enabled: false
+        use_fact_cache: false
+
+      - name: "ITIL/GLPI/Plugin/FormCreator/to_JSON_Object"
+        ask_credential_on_launch: true
+        ask_inventory_on_launch: true
+        ask_tags_on_launch: false
+        ask_variables_on_launch: false
+        concurrent_jobs_enabled: true
+        description: |
+          Fetch Form Creator Form and create JSON Object.
+          Optionaly add to ticket task body as string.
+        execution_environment: "No Fuss Computing EE"
+        extra_vars:
+          nfc_pb_glpi_form_to_ticket: false
+          nfc_pb_glpi_ticket_task_category: 0
+        job_tags: plugin_form_fetch_json,ticket_template_from_itil_category,ticket_create,ticket_task_create
+        job_type: "run"
+        labels:
+          - forms
+          - glpi
+          - itsm
+          - plugin
+          - service_catalog
+          - ticket
+        survey_enabled: false
+        use_fact_cache: false
+
+      - name: "ITIL/GLPI/Ticket/Close"
+        ask_credential_on_launch: true
+        ask_inventory_on_launch: true
+        ask_tags_on_launch: false
+        ask_variables_on_launch: false
+        concurrent_jobs_enabled: true
+        description: |
+          Close a Ticket in GLPI.
+          NOTE: Requires first that the ticket creation job has already run.
+        execution_environment: "No Fuss Computing EE"
+        job_tags: ticket_close
+        job_type: "run"
+        labels:
+          - close
+          - glpi
+          - itil
+          - itsm
+          - ticket
+        survey_enabled: false
+        use_fact_cache: false
+
+      - name: "ITIL/GLPI/Ticket/Create"
+        ask_credential_on_launch: true
+        ask_inventory_on_launch: true
+        ask_tags_on_launch: true
+        ask_variables_on_launch: true
+        concurrent_jobs_enabled: true
+        description: |
+          Create a Ticket in GLPI.
+          Available tags:
+            'ticket_template_from_itil_category' Optional Tag to fetch ticket templete from itil category,
+            'ticket_create' Create ticket.
+          A Tag MUST be set.
+        execution_environment: "No Fuss Computing EE"
+        extra_vars:
+          nfc_pb_glpi_itil_category: 0
+          nfc_pb_glpi_ticket_type: request
+          nfc_pb_glpi_ticket_create:
+            name: 'Ticket Title'
+            content: 'Ticket Dscription'
+        job_tags: ticket_template_from_itil_category,ticket_create
+        job_type: "run"
+        labels:
+          - create
+          - glpi
+          - itil
+          - itsm
+          - ticket
+          - template
+        survey_enabled: false
+        use_fact_cache: false
+
+      - name: "ITIL/GLPI/Ticket/Task/Create"
+        ask_credential_on_launch: true
+        ask_inventory_on_launch: true
+        ask_tags_on_launch: true
+        ask_variables_on_launch: true
+        concurrent_jobs_enabled: true
+        description: |
+          Create a Ticket Task in GLPI.
+          Available tags:
+            'ticket_template_from_itil_category' Optional Tag to fetch ticket templete from itil category,
+            'ticket_create' Create ticket.
+            'ticket_task_create' Create a Ticket task from the created or specified ticket
+          A Tag MUST be set.
+        execution_environment: "No Fuss Computing EE"
+        extra_vars:
+          nfc_pb_glpi_itil_category: 0
+          nfc_pb_glpi_ticket_type: request
+          nfc_pb_glpi_ticket_create:
+            name: 'Ticket Title'
+            content: 'Ticket Dscription'
+          nfc_pb_glpi_ticket_task_create:
+            id: 0
+            taskcategories_id: 1,
+            tickets_id: 0
+            content: "Created Ticket Task via AWX"
+        job_tags: ticket_task_create
+        job_type: "run"
+        labels:
+          - create
+          - glpi
+          - itil
+          - itsm
+          - ticket
+          - template
+        survey_enabled: false
+        use_fact_cache: false
+
+      - name: "ITIL/GLPI/Ticket/Assign/Error"
+        ask_credential_on_launch: true
+        ask_inventory_on_launch: true
+        ask_tags_on_launch: false
+        ask_variables_on_launch: true
+        concurrent_jobs_enabled: true
+        description: |
+          Create a Ticket Task in GLPI.
+          The always tag must be specified for this task to run.
+        execution_environment: "No Fuss Computing EE"
+        extra_vars:
+          nfc_pb_glpi_ticket_assign_error_user: 0
+        job_tags: always
+        job_type: "run"
+        labels:
+          - assign
+          - error
+          - glpi
+          - itil
+          - itsm
+          - ticket
+          - template
+        survey_enabled: false
+        use_fact_cache: true
+
+      - name: "ITIL/GLPI/Ticket/Template/From_ITIL_Category"
+        ask_credential_on_launch: true
+        ask_inventory_on_launch: true
+        ask_tags_on_launch: false
+        ask_variables_on_launch: true
+        concurrent_jobs_enabled: true
+        description: |
+          Using the ITIL Category Fetch the ticket template id then build a default
+          template. Also Returns Mandatory fields for validation usage when creating
+          the ticket.
+        execution_environment: "No Fuss Computing EE"
+        extra_vars:
+          nfc_pb_glpi_itil_category: 0
+          nfc_pb_glpi_ticket_type: request
+        job_tags: ticket_template_from_itil_category
+        job_type: "run"
+        labels:
+          - glpi
+          - itil
+          - itsm
+          - ticket
+          - template
+        survey_enabled: false
+        use_fact_cache: false
+        credential_types:
+
+          - name: playbook/glpi/api
+            description: A Credential type for No Fuss Computings Public Playbooks glpi.yaml
+            inputs: |
+              fields:
+                - id: host
+                  type: string
+                  label: GLPI FQDN
+                  secret: false
+                - id: app_token
+                  type: string
+                  label: GLPI APP Token
+                  secret: true
+                - id: user_token
+                  type: string
+                  label: GLPI User Token
+                  secret: true
+              required:
+                - host
+                - app_token
+                - user_token
+            injectors: >
+              extra_vars:
+                nfc_pb_glpi_host: '{{ host }}'
+                nfc_pb_glpi_app_token: '{{ app_token }}'
+                nfc_pb_glpi_user_token: '{{ user_token }}'

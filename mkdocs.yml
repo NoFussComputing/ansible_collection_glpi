@@ -1,0 +1,41 @@
+INHERIT: website-template/mkdocs.yml
+
+docs_dir: 'docs'
+
+repo_name: GLPI Ansible Collection
+repo_url: https://gitlab.com/nofusscomputing/projects/ansible/collections/glpi
+edit_uri: '/-/ide/project/nofusscomputing/projects/ansible/collections/glpi/edit/development/-/docs/'
+
+nav:
+- Home: index.md
+
+- Articles: 
+
+  - articles/index.md
+
+- Projects: 
+
+  - projects/index.md
+
+  - Ansible:
+
+    - projects/ansible/index.md
+
+    - Collections:
+
+      - projects/ansible/collection/index.md
+
+      - GLPI:
+
+        - projects/ansible/collection/glpi/index.md
+
+        - Role nfc_glpi:
+
+          - projects/ansible/collection/glpi/roles/nfc_glpi/index.md
+
+- Operations: 
+
+  - operations/index.md
+
+- Contact Us: contact.md
+

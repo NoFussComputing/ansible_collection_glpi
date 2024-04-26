@@ -1,0 +1,110 @@
+---
+
+variables:
+  ANSIBLE_GALAXY_PACKAGE_NAME: glpi
+  MY_PROJECT_ID: "57309262"
+  GIT_SYNC_URL: "https://$GITHUB_USERNAME_ROBOT:$GITHUB_TOKEN_ROBOT@github.com/NoFussComputing/ansible_collection_glpi.git"
+  PAGES_ENVIRONMENT_PATH: projects/ansible/collection/glpi/
+  RELEASE_ADDITIONAL_ACTIONS_BUMP: ./.gitlab/additional_actions_bump.sh
+
+
+include:
+  - project: nofusscomputing/projects/gitlab-ci
+    ref: development
+    file:
+      - .gitlab-ci_common.yaml
+      - conventional_commits/.gitlab-ci.yml
+      - template/ansible-collection.gitlab-ci.yaml
+      - template/mkdocs-documentation.gitlab-ci.yaml
+      # ToDo: update gitlabCI jobs for collections workflow
+      - git_push_mirror/.gitlab-ci.yml
+      - automation/.gitlab-ci-ansible.yaml
+
+
+Build Collection:
+  extends: .ansible_collection_build
+  needs:
+    - job: Ansible Lint
+      optional: true
+    - job: Ansible Lint (galaxy.yml)
+      optional: true
+
+  rules:
+
+    - if: $CI_COMMIT_TAG
+      when: always
+
+    # Needs to run, even by bot as the test results need to be available
+    # - if: "$CI_COMMIT_AUTHOR =='nfc_bot <helpdesk@nofusscomputing.com>'"
+    #   when: never
+
+    - if: # Occur on merge
+        $CI_COMMIT_BRANCH
+          &&
+        $CI_PIPELINE_SOURCE == "push"
+      when: always
+
+    # - if:
+    #     $CI_COMMIT_BRANCH != "development"
+    #       &&
+    #     $CI_COMMIT_BRANCH != "master"
+    #       &&
+    #     $CI_PIPELINE_SOURCE == "push"
+    #   when: always
+
+    - when: never
+
+
+Update Git Submodules:
+  extends: .ansible_playbook_git_submodule
+
+
+Github (Push --mirror):
+  extends:
+    - .git_push_mirror
+  needs: []
+
+
+Gitlab Release:
+  extends: .ansible_collection_release
+  needs:
+    - Stage Collection
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: ./artifacts/release_notes.md
+    name: $CI_COMMIT_TAG
+    assets:
+      links:
+        - name: 'Ansible Galaxy'
+          url: https://galaxy.ansible.com/ui/repo/published/${ANSIBLE_GALAXY_NAMESPACE}/${ANSIBLE_GALAXY_PACKAGE_NAME}/?version=${CI_COMMIT_TAG}
+
+        - name: ${ANSIBLE_GALAXY_NAMESPACE}-${ANSIBLE_GALAXY_PACKAGE_NAME}-${CI_COMMIT_TAG}.tar.gz
+          url: https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/artifacts/${ANSIBLE_GALAXY_NAMESPACE}-${ANSIBLE_GALAXY_PACKAGE_NAME}-${CI_COMMIT_TAG}.tar.gz
+          link_type: package
+
+        - name: Documentation
+          url: https://nofusscomputing.com/${PAGES_ENVIRONMENT_PATH}
+    milestones: 
+      - $CI_MERGE_REQUEST_MILESTONE
+
+
+Website.Submodule.Deploy:
+  extends: .submodule_update_trigger
+  variables:
+    SUBMODULE_UPDATE_TRIGGER_PROJECT: nofusscomputing/infrastructure/website
+  environment:
+    url: https://nofusscomputing.com/$PAGES_ENVIRONMENT_PATH
+    name: Documentation
+  rules:
+    - if:  # condition_dev_branch_push
+        $CI_COMMIT_BRANCH == "development" && 
+        $CI_PIPELINE_SOURCE == "push"
+      exists:
+        - '{docs/**,pages/**}/*.md'
+      changes:
+        paths:
+          - '{docs/**,pages/**}/*.md'
+        compare_to: 'master'
+      when: always
+
+    - when: never
