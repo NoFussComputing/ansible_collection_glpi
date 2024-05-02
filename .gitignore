@@ -1,0 +1,4 @@
+artifacts/
+build/
+*.tar.gz
+*.tmp.*
